@@ -14,7 +14,13 @@ const SERVER_FEATURES: [Feature; 4] = [
     Feature::McpOAuthRefreshCoordination,
 ];
 
-pub(super) const FAILURE_HINT: &str = "To work without the background server, rerun the same command with --no-daemon (including resume or fork and its arguments).";
+// better-codex: this fork never runs the embedded app server; every failure path
+// must tell the user how to make the official background server reachable.
+pub(super) const FAILURE_HINT: &str = "This build requires the official Codex background server. Open Codex Desktop once, or run `codex app-server daemon` in a normal (non-administrator) terminal, then retry.";
+// Only read by the release-build guard in `start_app_server`; the suite drives
+// embedded in-process servers, so the guarded call site is compiled out there.
+#[cfg(not(test))]
+pub(super) const DAEMON_REQUIRED_MESSAGE: &str = "The official Codex background server is not available to this client (not running, not installed, blocked by the launcher or an elevated session, or incompatible with this build).\nOpen Codex Desktop once, or run `codex app-server daemon` in a normal (non-administrator) terminal, then retry.";
 pub(super) const WSL_DRVFS_EXCLUSION: &str = "a Windows-mounted WSL CODEX_HOME (DrvFS/9p)";
 
 /// Returns whether `codex_home` is on a Windows-mounted WSL filesystem.

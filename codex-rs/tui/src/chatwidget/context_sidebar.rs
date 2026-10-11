@@ -96,6 +96,24 @@ impl ChatWidget {
             Line::from("Directory".bold()),
             Line::from(self.config.cwd.to_string_lossy().into_owned()).dim(),
         ]);
+        // This fork only ever speaks to an external server; showing which one (and its
+        // version) is the visible proof that the embedded path is not in use.
+        if let Some(connection) = self.remote_connection.as_ref() {
+            lines.extend([
+                Line::default(),
+                Line::from("Backend".bold()),
+                Line::from(format!(
+                    "{} {}",
+                    if connection.is_local_daemon {
+                        "daemon"
+                    } else {
+                        "remote"
+                    },
+                    connection.version
+                ))
+                .dim(),
+            ]);
+        }
         self.context_sidebar_plan_lines(&mut lines);
         lines
     }
@@ -240,6 +258,26 @@ mod tests {
             }
             assert!(chat.as_renderable().cursor_pos(area).is_some());
         }
+    }
+
+    #[tokio::test]
+    async fn backend_line_names_the_connected_server() {
+        let (mut chat, _, _, _) = make_chatwidget_manual_with_sender().await;
+        chat.remote_connection = Some(crate::status::remote_connection::RemoteConnectionStatus {
+            address: "unix:///tmp/app-server-control.sock".to_string(),
+            version: "v0.162.1".to_string(),
+            is_local_daemon: true,
+        });
+        let area = Rect::new(0, 0, 140, 30);
+        let mut buffer = Buffer::empty(area);
+        chat.as_renderable().render(area, &mut buffer);
+        let text: String = buffer
+            .content
+            .iter()
+            .map(ratatui::buffer::Cell::symbol)
+            .collect();
+        assert!(text.contains("Backend"), "{text}");
+        assert!(text.contains("daemon v0.162.1"), "{text}");
     }
 
     #[tokio::test]

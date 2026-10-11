@@ -564,6 +564,15 @@ async fn start_app_server(
     environment_manager: Arc<EnvironmentManager>,
     embedded_network_policy: codex_app_server_client::EmbeddedNetworkPolicy,
 ) -> color_eyre::Result<AppServerClient> {
+    // better-codex: this fork is a pure client of the official Codex background
+    // server. Every upstream path that settles on Embedded must fail loudly here.
+    // The guard is compiled out of test builds because the suite drives real app
+    // flows over in-process servers; daemon-only policy ships in release binaries
+    // and is verified at runtime.
+    #[cfg(not(test))]
+    if matches!(target, AppServerTarget::Embedded) {
+        return Err(color_eyre::Report::msg(daemon_startup::DAEMON_REQUIRED_MESSAGE));
+    }
     let connection = if matches!(target, AppServerTarget::Embedded) {
         None
     } else {
@@ -572,19 +581,6 @@ async fn start_app_server(
     if let Some(connection) = connection {
         match connection {
             Ok(app_server) => return Ok(app_server),
-            Err(err)
-                if matches!(
-                    target,
-                    AppServerTarget::LocalDaemon {
-                        allow_embedded_fallback: true,
-                        ..
-                    }
-                ) =>
-            {
-                tracing::debug!(%err, "local daemon connection failed; starting embedded app server");
-                *target = AppServerTarget::Embedded;
-                *state_db = init_state_db_for_app_server_target(&config, target).await?;
-            }
             Err(err) if matches!(target, AppServerTarget::LocalDaemon { .. }) => {
                 return Err(color_eyre::eyre::eyre!(
                     "{err:#}\n{}",

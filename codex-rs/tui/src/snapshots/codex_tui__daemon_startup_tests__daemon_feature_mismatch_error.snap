@@ -3,4 +3,4 @@ source: tui/src/daemon_startup_tests.rs
 expression: error
 ---
 Cannot use the shared background server: This session requires api_key_model_discovery to be enabled.
-To work without the background server, rerun the same command with --no-daemon (including resume or fork and its arguments).
+This build requires the official Codex background server. Open Codex Desktop once, or run `codex app-server daemon` in a normal (non-administrator) terminal, then retry.
