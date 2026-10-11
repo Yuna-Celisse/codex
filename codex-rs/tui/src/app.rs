@@ -1122,7 +1122,7 @@ impl App {
                         let ambient_pet_area = Rect::new(
                             /*x*/ 0,
                             /*y*/ 0,
-                            screen_size.width,
+                            self.chat_widget.context_chat_width(screen_size.width),
                             screen_size.height,
                         );
                         if let Err(err) = tui.draw_ambient_pet_image(

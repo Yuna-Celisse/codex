@@ -1,0 +1,8 @@
+{
+  "repository": "https://github.com/openai/codex.git",
+  "tag": "rust-v0.162.0",
+  "commit": "c1382380de69521303b416720a52f42d51af6248",
+  "license": "Apache-2.0",
+  "legacyImplementation": ".legacy/ink-tui-2026-10-11",
+  "sourceChanges": "responsive Context sidebar in codex-rs/tui; hides below 120 columns; Cargo.lock local workspace versions normalized to 0.162.0"
+}

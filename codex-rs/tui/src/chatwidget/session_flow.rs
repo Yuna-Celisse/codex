@@ -352,6 +352,7 @@ impl ChatWidget {
             }
         }
         self.transcript.last_plan_progress = None;
+        self.transcript.last_plan = None;
         self.last_rendered_user_message_display = None;
         self.last_rendered_user_message_client_id = None;
         self.clear_pending_rate_limit_reset_hint();

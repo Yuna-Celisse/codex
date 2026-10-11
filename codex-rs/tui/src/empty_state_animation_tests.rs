@@ -60,6 +60,31 @@ fn first_screen_stage_ignores_notices_and_hides_instead_of_shrinking() {
 }
 
 #[test]
+fn first_screen_stage_centers_within_the_chat_column_beside_the_sidebar() {
+    let mut animation = EmptyStateAnimation::default();
+    animation.start_fresh();
+    let screen = Rect::new(/*x*/ 0, /*y*/ 0, /*width*/ 120, /*height*/ 40);
+    let mut buffer = Buffer::empty(screen);
+    // The context sidebar owns the last 32 columns; the chat column is 88 wide.
+    let chat = Rect::new(/*x*/ 0, /*y*/ 0, /*width*/ 88, /*height*/ 40);
+    assert_eq!(
+        animation.render_first_screen(
+            chat,
+            &mut buffer,
+            Some(ComposerState::Empty),
+            MotionMode::Animated
+        ),
+        None
+    );
+    // width = min(88 - 4, 60) = 60, centered in the chat column, never crossing the divider.
+    assert_eq!(
+        animation.stage,
+        Some(Rect::new(/*x*/ 14, /*y*/ 9, /*width*/ 60, /*height*/ 21))
+    );
+    assert!(animation.stage.unwrap().right() < chat.right());
+}
+
+#[test]
 fn first_screen_single_click_replays_the_visible_blossom() {
     let mut animation = EmptyStateAnimation::default();
     animation.start_fresh();

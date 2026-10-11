@@ -76,6 +76,11 @@ impl App {
         screen_size: Size,
     ) -> Result<Rect> {
         self.chat_widget.sync_warnings(&self.transcript_cells);
+        let (chat_area, context_sidebar) = crate::chatwidget::context_sidebar::split_context_area(
+            Rect::new(0, 0, screen_size.width, screen_size.height),
+            self.chat_widget.context_sidebar_enabled(),
+        );
+        let chat_width = chat_area.width;
         let motion = MotionMode::from_animations_enabled(
             self.local_settings.tui.animations && self.local_settings.tui.effects.shimmer,
         );
@@ -101,8 +106,7 @@ impl App {
         let mut composer_gap = (!self.chat_widget.has_active_view()
             && !self.chat_widget.is_external_writer_view())
         .then(crate::bottom_pane::ComposerGap::default);
-        let mut prompt_footer =
-            self.prompt_navigation_footer(screen_size.width.saturating_sub(/*rhs*/ 2));
+        let mut prompt_footer = self.prompt_navigation_footer(chat_width.saturating_sub(/*rhs*/ 2));
         let chat_widget = &self.chat_widget;
         let view = &mut self.transcript_view;
         let active_key = chat_widget.active_cell_transcript_key();
@@ -112,10 +116,7 @@ impl App {
             tui.frame_requester().schedule_frame();
         }
         let footer_area = crate::bottom_pane::inset_footer_hint_area(Rect::new(
-            /*x*/ 0,
-            /*y*/ 0,
-            screen_size.width,
-            /*height*/ 1,
+            /*x*/ 0, /*y*/ 0, chat_width, /*height*/ 1,
         ));
         let footer = view.footer_with_navigation(footer_area.width, motion, latest_navigation);
         // Cap the whole composer (including padding and hints) at two-thirds of the screen,
@@ -142,16 +143,14 @@ impl App {
         let bottom_height = if dashboard_visible {
             screen_size.height
         } else {
-            bottom
-                .desired_height(screen_size.width)
-                .min(screen_size.height)
+            bottom.desired_height(chat_width).min(screen_size.height)
         };
         drop(bottom);
         let available = screen_size.height.saturating_sub(bottom_height);
         let mut bottom_area = Rect::new(
             /*x*/ 0,
             screen_size.height.saturating_sub(bottom_height),
-            screen_size.width,
+            chat_width,
             bottom_height,
         );
         let mut rendered_cursor = None;
@@ -161,7 +160,7 @@ impl App {
         let mut transcript_bottom = available.saturating_sub(u16::from(composer_gap.is_none()));
         tui.draw(screen_size.height, |frame| {
             ratatui::widgets::Clear.render(
-                Rect::new(/*x*/ 0, /*y*/ 0, screen_size.width, available),
+                Rect::new(/*x*/ 0, /*y*/ 0, chat_width, available),
                 frame.buffer,
             );
             let mut completion_tip_area = view.render_with_turn_tip_space(
@@ -209,15 +208,10 @@ impl App {
                     ..Default::default()
                 });
             footer_height_changed = !dashboard_visible
-                && bottom
-                    .desired_height(screen_size.width)
-                    .min(screen_size.height)
-                    != bottom_height;
+                && bottom.desired_height(chat_width).min(screen_size.height) != bottom_height;
             if footer_height_changed && composer_gap.as_ref().is_some_and(|gap| gap.needs_separator)
             {
-                bottom_area.height = bottom
-                    .desired_height(screen_size.width)
-                    .min(screen_size.height);
+                bottom_area.height = bottom.desired_height(chat_width).min(screen_size.height);
                 bottom_area.y = screen_size.height.saturating_sub(bottom_area.height);
                 // Resolve controls with the compact viewport first, then make room for
                 // their separator. Resizing must not preserve a stale return control.
@@ -241,7 +235,7 @@ impl App {
                 .borrow_mut()
                 .render_first_screen(
                     Rect {
-                        width: screen_size.width,
+                        width: chat_width,
                         ..view.remaining_area()
                     },
                     frame.buffer,
@@ -270,21 +264,22 @@ impl App {
             .filter(|_| chat_widget.no_modal_or_popup_active());
             feedback_tick =
                 view.render_composer_gap(follow_area, composer_hint.as_ref(), frame.buffer, now);
+            // `history_wrap_width` applies the sidebar breakpoint itself, so this must
+            // stay the full terminal width like every other `note_rendered_width` caller.
             chat_widget.note_rendered_width(screen_size.width);
+            if let Some(sidebar) = context_sidebar {
+                chat_widget.render_context_sidebar(sidebar, frame.buffer);
+            }
             let dialog = chat_widget.centered_dialog();
-            let (foreground, foreground_area): (&dyn Renderable, Rect) =
-                if let Some(dialog) = &dialog {
-                    let area = Rect::new(
-                        /*x*/ 0,
-                        /*y*/ 0,
-                        screen_size.width,
-                        screen_size.height,
-                    );
-                    dialog.render(area, frame.buffer);
-                    (dialog, area)
-                } else {
-                    (&bottom, bottom_area)
-                };
+            let (foreground, foreground_area): (&dyn Renderable, Rect) = if let Some(dialog) =
+                &dialog
+            {
+                let area = Rect::new(/*x*/ 0, /*y*/ 0, chat_width, screen_size.height);
+                dialog.render(area, frame.buffer);
+                (dialog, area)
+            } else {
+                (&bottom, bottom_area)
+            };
             rendered_cursor = foreground.cursor_pos(foreground_area);
             if let Some(position) = rendered_cursor {
                 frame.set_cursor_style(foreground.cursor_style(foreground_area));

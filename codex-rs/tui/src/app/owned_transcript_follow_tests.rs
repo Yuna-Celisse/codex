@@ -8,6 +8,42 @@ use crossterm::event::MouseEventKind;
 use pretty_assertions::assert_eq;
 
 #[tokio::test]
+async fn context_sidebar_owned_resize_preserves_draft_and_full_height_divider() -> Result<()> {
+    let mut app = crate::app::test_support::make_test_app().await;
+    app.local_settings.tui.animations = false;
+    app.chat_widget
+        .apply_external_edit("keep this draft".to_string());
+    app.transcript_cells = vec![Arc::new(PlainHistoryCell::new(vec![
+        "History should wrap inside the chat column, rather than behind the sidebar. "
+            .repeat(5)
+            .into(),
+    ]))];
+    let mut tui = crate::tui::test_support::make_test_tui()?;
+    tui.set_owned_screen(true)?;
+    for width in [140, 119, 120, 80, 160] {
+        let size = Size::new(width, 24);
+        tui.screen_size_for_event(&TuiEvent::Resize(size))?;
+        let bottom = app.render_owned_transcript(&mut tui, size)?;
+        let expected_width = if width >= 120 { width - 32 } else { width };
+        assert_eq!(bottom.width, expected_width);
+        assert_eq!(
+            app.chat_widget.composer_text_with_pending(),
+            "keep this draft"
+        );
+        assert!(tui.terminal.last_known_cursor_pos.x < expected_width);
+        let buffer = crate::custom_terminal::test_support::last_rendered_buffer(&tui.terminal);
+        let text = super::tests::buffer_text(buffer);
+        assert_eq!(text.contains("Context"), width >= 120);
+        if width >= 120 {
+            for y in 0..size.height {
+                assert_eq!(buffer[(expected_width, y)].symbol(), "│");
+            }
+        }
+    }
+    Ok(())
+}
+
+#[tokio::test]
 async fn follow_control_click_preserves_draft_caret_and_composer_geometry() -> Result<()> {
     let mut app = crate::app::test_support::make_test_app().await;
     app.local_settings.tui.animations = false;

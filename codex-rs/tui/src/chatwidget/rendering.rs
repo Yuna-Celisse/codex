@@ -127,7 +127,7 @@ impl ExternalWriterNotice {
 
 impl ChatWidget {
     pub(crate) fn as_renderable(&self) -> RenderableItem<'_> {
-        let backdrop = self.as_backdrop_renderable();
+        let backdrop = self.with_context_sidebar(self.as_backdrop_renderable());
         match self.centered_dialog() {
             Some(dialog) => RenderableItem::Owned(Box::new(crate::bottom_pane::DialogOverlay {
                 backdrop,

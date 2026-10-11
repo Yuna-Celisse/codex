@@ -367,6 +367,7 @@ pub(crate) use realtime::tests::activate_voice_for_thread;
 pub(crate) use realtime::tests::commit_realtime_history_events;
 mod reasoning_shortcuts;
 use self::realtime::RealtimeConversationUiState;
+pub(crate) mod context_sidebar;
 mod rendering;
 mod replay;
 mod review;

@@ -59,6 +59,8 @@ pub(super) struct TranscriptState {
     pub(super) saw_plan_item_this_turn: bool,
     /// Latest `update_plan` checklist task counts for terminal-title rendering.
     pub(super) last_plan_progress: Option<(usize, usize)>,
+    /// Latest `update_plan` checklist items, retained for the context sidebar.
+    pub(super) last_plan: Option<Vec<codex_protocol::plan_tool::PlanItemArg>>,
     /// Incremental buffer for streamed plan content.
     pub(super) plan_delta_buffer: String,
     /// True while a plan item is streaming.

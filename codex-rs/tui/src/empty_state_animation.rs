@@ -190,6 +190,8 @@ impl EmptyStateAnimation {
 
     /// Draw only in space the caller has cleared and owns. The centered blossom returns
     /// on clear, without restarting or scheduling animation.
+    /// The stage centers horizontally inside `available` (the chat column, which excludes
+    /// the context sidebar) and vertically on the screen, as before.
     pub(crate) fn render_first_screen(
         &mut self,
         available: Rect,
@@ -200,7 +202,7 @@ impl EmptyStateAnimation {
         const STAGE_ROWS: u16 = 21;
         const MIN_STAGE_ROWS: u16 = 14;
         let screen = buffer.area;
-        let width = screen.width.saturating_sub(/*rhs*/ 4).min(MAX_COLUMNS);
+        let width = available.width.saturating_sub(/*rhs*/ 4).min(MAX_COLUMNS);
         let height = width * STAGE_ROWS / MAX_COLUMNS;
         if motion == MotionMode::Reduced
             || composer != Some(ComposerState::Empty)
@@ -211,7 +213,7 @@ impl EmptyStateAnimation {
             return None;
         }
         let stage = Rect::new(
-            screen.x + (screen.width - width) / 2,
+            available.x + (available.width - width) / 2,
             screen.y + (screen.height - height) / 2,
             width,
             height,
